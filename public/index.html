@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内容星球 — AI 自媒体工作台</title>
+<style>
+/* ===== LOGIN ===== */
+.login-overlay{position:fixed;inset:0;background:rgba(15,14,12,0.6);z-index:999;display:flex;align-items:center;justify-content:center;}
+.login-overlay.hidden{display:none;}
+.login-box{background:#fff;border-radius:16px;width:400px;max-width:92vw;padding:36px 32px;}
+.login-logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;margin-bottom:6px;}
+.login-sub{font-size:13px;color:#888;margin-bottom:28px;}
+.login-tabs{display:flex;border-bottom:0.5px solid #e0ded6;margin-bottom:22px;}
+.login-tab{flex:1;text-align:center;padding:10px;font-size:13.5px;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:all 0.15s;}
+.login-tab.active{color:#7F77DD;border-bottom-color:#7F77DD;font-weight:500;}
+.login-field{margin-bottom:14px;}
+.login-field label{font-size:12.5px;font-weight:500;color:#444;display:block;margin-bottom:5px;}
+.login-field input{width:100%;padding:10px 12px;border:0.5px solid #d0ced6;border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.15s;}
+.login-field input:focus{border-color:#7F77DD;}
+.login-btn{width:100%;padding:11px;border-radius:8px;background:#7F77DD;color:#fff;border:none;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background 0.15s;}
+.login-btn:hover{background:#6a62c8;}
+.login-btn:disabled{background:#c0bde8;cursor:not-allowed;}
+.login-err{font-size:12.5px;color:#e84040;margin-top:8px;display:none;}
+.trial-btn{width:100%;margin-top:10px;padding:10px;border-radius:8px;background:transparent;border:0.5px solid #d0ced6;color:#666;font-size:13.5px;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.trial-btn:hover{background:#f5f4f0;}
+</style>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif; background:#f5f4f0; color:#1a1a18; min-height:100vh; }
+
+/* ===== NAV ===== */
+.nav { background:#fff; border-bottom:0.5px solid #e0ded6; padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; }
+.nav-logo { font-size:17px; font-weight:600; display:flex; align-items:center; gap:8px; cursor:pointer; }
+.logo-dot { width:8px; height:8px; border-radius:50%; background:#7F77DD; }
+.nav-right { display:flex; align-items:center; gap:12px; }
+.plan-badge { font-size:12px; padding:3px 10px; border-radius:20px; font-weight:500; }
+.plan-free { background:#f0eed8; color:#888780; }
+.plan-pro { background:#EEEDFE; color:#534AB7; }
+.plan-team { background:#e1f5ee; color:#0f6e56; }
+.credits-display { font-size:13px; color:#888; }
+
+/* ===== LAYOUT ===== */
+.app { display:flex; height:calc(100vh - 56px); }
+.sidebar { width:216px; background:#fff; border-right:0.5px solid #e0ded6; padding:12px 0 24px; flex-shrink:0; overflow-y:auto; display:flex; flex-direction:column; }
+.main { flex:1; overflow-y:auto; padding:24px; }
+
+/* ===== SIDEBAR ===== */
+.sb-section { font-size:11px; color:#bbb; padding:14px 20px 5px; text-transform:uppercase; letter-spacing:0.5px; }
+.sb-item { display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13.5px; color:#666; cursor:pointer; transition:all 0.15s; user-select:none; }
+.sb-item:hover { background:#f5f4f0; color:#1a1a18; }
+.sb-item.active { background:#EEEDFE; color:#534AB7; font-weight:500; }
+.sb-new { background:#1D9E75; color:#fff; font-size:10px; padding:1px 6px; border-radius:8px; margin-left:auto; }
+.sb-bottom { margin-top:auto; padding:16px 20px; border-top:0.5px solid #e0ded6; }
+.upgrade-btn { width:100%; padding:9px; border-radius:8px; background:#7F77DD; color:#fff; border:none; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; }
+.upgrade-btn:hover { background:#6a62c8; }
+
+/* ===== PAGES ===== */
+.page { display:none; }
+.page.active { display:block; }
+
+/* ===== ONBOARDING OVERLAY ===== */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; display:flex; align-items:center; justify-content:center; }
+.overlay.hidden { display:none; }
+.onboard-modal { background:#fff; border-radius:16px; width:560px; max-width:90vw; max-height:90vh; overflow-y:auto; padding:32px; }
+.onboard-step { display:none; }
+.onboard-step.active { display:block; }
+.onboard-title { font-size:22px; font-weight:600; margin-bottom:6px; }
+.onboard-sub { font-size:14px; color:#888; margin-bottom:24px; line-height:1.6; }
+.progress-dots { display:flex; gap:6px; margin-bottom:28px; }
+.pdot { width:8px; height:8px; border-radius:50%; background:#e0ded6; transition:background 0.2s; }
+.pdot.active { background:#7F77DD; }
+.pdot.done { background:#1D9E75; }
+
+/* ===== FORMS ===== */
+.card { background:#fff; border:0.5px solid #e0ded6; border-radius:12px; padding:20px; margin-bottom:16px; }
+.card-title { font-size:15px; font-weight:500; margin-bottom:3px; }
+.card-sub { font-size:13px; color:#888; margin-bottom:16px; }
+.form-row { margin-bottom:14px; }
+.form-label { font-size:13px; font-weight:500; color:#444; margin-bottom:6px; display:block; }
+.form-label .hint { font-weight:400; color:#aaa; margin-left:6px; font-size:12px; }
+input[type="text"], textarea, select {
+  width:100%; padding:10px 12px; border:0.5px solid #d0ced6; border-radius:8px;
+  font-size:14px; font-family:inherit; background:#fff; color:#1a1a18;
+  outline:none; transition:border-color 0.15s; resize:vertical;
+}
+input[type="text"]:focus, textarea:focus, select:focus { border-color:#7F77DD; }
+textarea { min-height:88px; line-height:1.6; }
+
+/* ===== BUTTONS ===== */
+.btn { padding:10px 18px; border-radius:8px; font-size:13.5px; font-weight:500; cursor:pointer; border:none; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+.btn-primary { background:#7F77DD; color:#fff; }
+.btn-primary:hover { background:#6a62c8; }
+.btn-primary:disabled { background:#c0bde8; cursor:not-allowed; }
+.btn-outline { background:#fff; border:0.5px solid #d0ced6; color:#444; }
+.btn-outline:hover { background:#f5f4f0; }
+.btn-green { background:#1D9E75; color:#fff; }
+.btn-green:hover { background:#167a5a; }
+.btn-ghost { background:transparent; border:none; color:#888; font-size:13px; cursor:pointer; padding:8px 12px; font-family:inherit; }
+.btn-ghost:hover { color:#1a1a18; }
+.btn-sm { padding:6px 13px; font-size:12.5px; }
+.btn-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+/* ===== TAGS ===== */
+.tag-row { display:flex; flex-wrap:wrap; gap:7px; }
+.tag { padding:5px 12px; border-radius:20px; border:0.5px solid #d0ced6; font-size:12.5px; cursor:pointer; transition:all 0.15s; background:#fff; color:#555; user-select:none; }
+.tag.sel { background:#EEEDFE; border-color:#7F77DD; color:#534AB7; font-weight:500; }
+
+/* ===== INDUSTRY GRID ===== */
+.industry-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:8px; }
+.ind-card { border:0.5px solid #e0ded6; border-radius:10px; padding:14px 12px; cursor:pointer; transition:all 0.15s; background:#fff; text-align:center; }
+.ind-card:hover { border-color:#7F77DD; background:#EEEDFE; }
+.ind-card.sel { border-color:#7F77DD; background:#EEEDFE; border-width:1.5px; }
+.ind-icon { font-size:22px; margin-bottom:6px; }
+.ind-name { font-size:13px; font-weight:500; color:#1a1a18; margin-bottom:2px; }
+.ind-desc { font-size:11px; color:#888; }
+
+/* ===== PLATFORM PILLS ===== */
+.plat-row { display:flex; flex-wrap:wrap; gap:8px; }
+.plat-pill { padding:7px 14px; border-radius:20px; border:0.5px solid #d0ced6; font-size:13px; cursor:pointer; transition:all 0.15s; background:#fff; color:#555; display:flex; align-items:center; gap:6px; user-select:none; }
+.plat-pill .pdot2 { width:6px; height:6px; border-radius:50%; }
+.plat-pill.p-wx  { background:#e8f5e2; border-color:#52b745; color:#2d7a22; }
+.plat-pill.p-dy  { background:#fff0f0; border-color:#e84040; color:#a82020; }
+.plat-pill.p-xhs { background:#fff0f3; border-color:#e84074; color:#a82050; }
+.plat-pill.p-wb  { background:#fff4ec; border-color:#e87030; color:#a84818; }
+.plat-pill.p-zhi { background:#e8f0ff; border-color:#4070e8; color:#1840a8; }
+.plat-pill.p-bili{ background:#f0f0ff; border-color:#8888e8; color:#4040b0; }
+.plat-pill.p-yt  { background:#fff0f0; border-color:#e84040; color:#a82020; }
+.plat-pill.p-ig  { background:#fff0f8; border-color:#d840a0; color:#881868; }
+
+/* ===== LOADING / ERROR ===== */
+.loading { display:none; align-items:center; gap:10px; color:#888; font-size:13.5px; padding:16px; }
+.loading.show { display:flex; }
+.spinner { width:17px; height:17px; border:2px solid #e0ded6; border-top-color:#7F77DD; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.err-box { background:#fff0f0; border:0.5px solid #e84040; border-radius:8px; padding:10px 14px; font-size:13px; color:#a82020; margin-bottom:12px; display:none; }
+.notice { background:#fff4ec; border:0.5px solid #e89030; border-radius:8px; padding:10px 14px; font-size:13px; color:#a84818; margin-bottom:14px; }
+.tip-box { background:#EEEDFE; border:0.5px solid #AFA9EC; border-radius:8px; padding:10px 14px; font-size:13px; color:#3C3489; margin-bottom:14px; }
+.success-box { background:#e1f5ee; border:0.5px solid #1D9E75; border-radius:8px; padding:10px 14px; font-size:13px; color:#0f6e56; margin-bottom:14px; display:none; }
+
+/* ===== OUTPUT ===== */
+.out-block { background:#f9f8f5; border:0.5px solid #e0ded6; border-radius:10px; padding:15px; margin-bottom:12px; }
+.out-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#888; margin-bottom:8px; }
+.out-text { font-size:13.5px; line-height:1.75; color:#2a2a28; white-space:pre-wrap; }
+.out-actions { display:flex; gap:7px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+.copy-btn { padding:5px 11px; border-radius:6px; border:0.5px solid #d0ced6; background:#fff; font-size:12px; cursor:pointer; color:#555; font-family:inherit; transition:all 0.15s; }
+.copy-btn:hover { background:#f0eff8; border-color:#7F77DD; color:#534AB7; }
+.copy-btn.ok { background:#e8f5e2; border-color:#52b745; color:#2d7a22; }
+.copy-btn.primary { background:#7F77DD; color:#fff; border-color:#7F77DD; }
+
+/* ===== TABS ===== */
+.tabs { display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap; }
+.tab-btn { padding:6px 14px; border-radius:20px; font-size:12.5px; border:0.5px solid #d0ced6; background:#fff; cursor:pointer; color:#666; transition:all 0.15s; }
+.tab-btn.active { background:#7F77DD; border-color:#7F77DD; color:#fff; }
+
+/* ===== KEYWORD PILL ===== */
+.kpill { display:inline-block; padding:3px 9px; border-radius:12px; font-size:12px; margin:3px 3px 3px 0; background:#EEEDFE; color:#534AB7; cursor:pointer; transition:all 0.15s; }
+.kpill:hover { background:#7F77DD; color:#fff; }
+
+/* ===== STATS ===== */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.stat-card { background:#fff; border:0.5px solid #e0ded6; border-radius:10px; padding:14px 16px; }
+.stat-num { font-size:24px; font-weight:600; }
+.stat-label { font-size:12px; color:#888; margin-top:2px; }
+
+/* ===== PRICING ===== */
+.pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.price-card { background:#fff; border:0.5px solid #e0ded6; border-radius:14px; padding:24px 20px; text-align:center; }
+.price-card.featured { border:2px solid #7F77DD; }
+.price-name { font-size:13px; color:#888; margin-bottom:8px; }
+.price-num { font-size:32px; font-weight:700; margin-bottom:2px; }
+.price-period { font-size:12px; color:#aaa; margin-bottom:16px; }
+.price-feat { font-size:13px; color:#555; line-height:2.1; text-align:left; margin:12px 0 20px; }
+.featured-tag { background:#7F77DD; color:#fff; font-size:11px; padding:3px 12px; border-radius:10px; display:inline-block; margin-bottom:10px; }
+
+/* ===== SCRIPT SECTIONS ===== */
+.script-tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; font-weight:600; margin-bottom:5px; }
+.st-hook { background:#fff0f0; color:#e84040; }
+.st-build { background:#fff4ec; color:#e87030; }
+.st-turn { background:#f5f8ff; color:#4070d8; }
+.st-cta  { background:#f0faf5; color:#1D9E75; }
+
+/* ===== MISC ===== */
+.divider { height:0.5px; background:#e0ded6; margin:16px 0; }
+.row { display:flex; gap:12px; align-items:flex-start; }
+.grow { flex:1; }
+.pain-item { font-size:13px; color:#2a2a28; padding:5px 0; border-bottom:0.5px solid #f0eed8; display:flex; gap:8px; }
+.pain-item:last-child { border-bottom:none; }
+.pdot3 { width:5px; height:5px; border-radius:50%; background:#7F77DD; margin-top:7px; flex-shrink:0; }
+.analysis-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.a-card { background:#f9f8f5; border:0.5px solid #e0ded6; border-radius:10px; padding:14px; }
+.a-title { font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; }
+.batch-table { width:100%; border-collapse:collapse; font-size:13px; }
+.batch-table th { background:#f5f4f0; padding:10px 12px; text-align:left; font-size:12px; color:#666; border-bottom:0.5px solid #e0ded6; font-weight:500; }
+.batch-table td { padding:10px 12px; border-bottom:0.5px solid #f0eed8; vertical-align:top; line-height:1.5; }
+.batch-table tr:last-child td { border-bottom:none; }
+.batch-table tr:hover td { background:#fafaf8; }
+
+@media(max-width:700px){
+  .sidebar { display:none; }
+  .stats-row { grid-template-columns:1fr 1fr; }
+  .pricing-grid { grid-template-columns:1fr; }
+  .industry-grid { grid-template-columns:repeat(2,1fr); }
+  .analysis-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav">
+  <div class="nav-logo" onclick="goHome()">
+    <span class="logo-dot"></span>内容星球
+  </div>
+  <div class="nav-right">
+    <span class="credits-display" id="creditsDisplay">剩余 — 次</span>
+    <span class="plan-badge plan-free" id="planBadge">免费版</span>
+    <span id="userEmail" style="font-size:12px;color:#888;display:none;"></span>
+    <button id="logoutBtn" onclick="doLogout()" style="display:none;padding:5px 12px;border-radius:6px;border:0.5px solid #d0ced6;background:#fff;font-size:12px;cursor:pointer;color:#666;font-family:inherit;">退出</button>
+  </div>
+</nav>
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo"><span class="logo-dot"></span>内容星球</div>
+    <div class="login-sub">AI 自媒体工作台 · 零代码生成专业内容</div>
+    <div class="login-tabs">
+      <div class="login-tab active" onclick="switchLoginTab('login',this)">登录</div>
+      <div class="login-tab" onclick="switchLoginTab('register',this)">注册</div>
+    </div>
+    <div id="loginForm">
+      <div class="login-field"><label>邮箱</label><input type="email" id="loginEmail" placeholder="your@email.com" /></div>
+      <div class="login-field"><label>密码</label><input type="password" id="loginPwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" /></div>
+      <div class="login-err" id="loginErr"></div>
+      <button class="login-btn" onclick="doLogin()" id="loginBtn">登录</button>
+      <button class="trial-btn" onclick="doTrial()">免费体验 3 次（无需注册）</button>
+    </div>
+    <div id="registerForm" style="display:none;">
+      <div class="login-field"><label>邮箱</label><input type="email" id="regEmail" placeholder="your@email.com" /></div>
+      <div class="login-field"><label>设置密码</label><input type="password" id="regPwd" placeholder="至少 6 位" /></div>
+      <div class="login-err" id="regErr"></div>
+      <button class="login-btn" onclick="doRegister()" id="regBtn">注册并开始使用</button>
+      <div style="font-size:12px;color:#aaa;margin-top:12px;text-align:center;">注册后获赠 10 次免费生成 · 无需信用卡</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ONBOARDING OVERLAY ===== -->
+<div class="overlay" id="onboardOverlay">
+  <div class="onboard-modal">
+    <div class="progress-dots" id="progressDots"></div>
+
+    <!-- Step 1: 欢迎 -->
+    <div class="onboard-step active" id="ob1">
+      <div class="onboard-title">欢迎使用内容星球 👋</div>
+      <div class="onboard-sub">2分钟完成设置，AI 就能生成专属您行业的自媒体内容。全程零代码，无需任何技术基础。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+        <div style="background:#f9f8f5;border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:6px;">✦</div>
+          <div style="font-size:13px;font-weight:500;">AI 文案生成</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">8大平台专属风格</div>
+        </div>
+        <div style="background:#f9f8f5;border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:6px;">◈</div>
+          <div style="font-size:13px;font-weight:500;">口播脚本</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">结构化爆款公式</div>
+        </div>
+        <div style="background:#f9f8f5;border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:20px;margin-bottom:6px;">▦</div>
+          <div style="font-size:13px;font-weight:500;">批量选题</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">一键生成执行包</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="obNext()">开始设置 →</button>
+    </div>
+
+    <!-- Step 2: 行业选择 -->
+    <div class="onboard-step" id="ob2">
+      <div class="onboard-title">您主要在哪个行业？</div>
+      <div class="onboard-sub">选择后 AI 会自动适配该行业的话题标签、内容风格和常见选题方向。</div>
+      <div class="industry-grid" id="industryGrid">
+        <div class="ind-card" onclick="selIndustry(this,'教育培训','知识博主/老师IP/课程推广')">
+          <div class="ind-icon">📚</div>
+          <div class="ind-name">教育培训</div>
+          <div class="ind-desc">知识博主 / 老师IP</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'美妆护肤','美妆博主/品牌推广/产品测评')">
+          <div class="ind-icon">✨</div>
+          <div class="ind-name">美妆护肤</div>
+          <div class="ind-desc">品牌推广 / 产品种草</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'食品餐饮','餐厅/食品品牌/美食博主')">
+          <div class="ind-icon">🍜</div>
+          <div class="ind-name">食品餐饮</div>
+          <div class="ind-desc">餐厅探店 / 食品品牌</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'健康健身','健身博主/营养师/运动品牌')">
+          <div class="ind-icon">💪</div>
+          <div class="ind-name">健康健身</div>
+          <div class="ind-desc">健身博主 / 运动品牌</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'电商零售','淘宝/拼多多/独立站卖家')">
+          <div class="ind-icon">🛍️</div>
+          <div class="ind-name">电商零售</div>
+          <div class="ind-desc">产品推广 / 店铺运营</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'职场副业','求职/副业/职场成长')">
+          <div class="ind-icon">💼</div>
+          <div class="ind-name">职场副业</div>
+          <div class="ind-desc">职场干货 / 副业指南</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'旅游出行','旅行博主/酒店/景区')">
+          <div class="ind-icon">✈️</div>
+          <div class="ind-name">旅游出行</div>
+          <div class="ind-desc">旅行博主 / 目的地推广</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'家居生活','家装/家居品牌/生活方式')">
+          <div class="ind-icon">🏠</div>
+          <div class="ind-name">家居生活</div>
+          <div class="ind-desc">家装设计 / 家居好物</div>
+        </div>
+        <div class="ind-card" onclick="selIndustry(this,'其他行业','')">
+          <div class="ind-icon">⚡</div>
+          <div class="ind-name">其他行业</div>
+          <div class="ind-desc">自定义填写</div>
+        </div>
+      </div>
+      <div class="form-row" id="customIndustryRow" style="display:none;">
+        <input type="text" id="customIndustryInput" placeholder="请填写您的行业，例：宠物、母婴、金融理财..." />
+      </div>
+      <div class="btn-row" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="obPrev()">← 返回</button>
+        <button class="btn btn-primary" onclick="obNext()">下一步 →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: 品牌信息 -->
+    <div class="onboard-step" id="ob3">
+      <div class="onboard-title">告诉 AI 您的品牌</div>
+      <div class="onboard-sub">填写后无需每次重复说明，所有内容都会基于您的品牌调性生成。</div>
+      <div class="form-row">
+        <label class="form-label">品牌 / IP 名称</label>
+        <input type="text" id="ob_brandName" placeholder="例：小美护肤、张老师英语、极光咖啡..." />
+      </div>
+      <div class="form-row">
+        <label class="form-label">核心卖点 <span class="hint">一句话描述您最大的差异化</span></label>
+        <input type="text" id="ob_brandPoint" placeholder="例：纯天然植物配方，敏感肌专属；10年英语教学经验..." />
+      </div>
+      <div class="form-row">
+        <label class="form-label">目标受众</label>
+        <input type="text" id="ob_brandAudience" placeholder="例：25-35岁职场女性；高中生家长；创业者..." />
+      </div>
+      <div class="form-row">
+        <label class="form-label">主要产品 / 服务 <span class="hint">可选填</span></label>
+        <input type="text" id="ob_brandProduct" placeholder="例：护肤套装、线上课程、咖啡订阅..." />
+      </div>
+      <div class="btn-row" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="obPrev()">← 返回</button>
+        <button class="btn btn-primary" onclick="obNext()">下一步 →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: 平台选择 -->
+    <div class="onboard-step" id="ob4">
+      <div class="onboard-title">主要在哪些平台发布？</div>
+      <div class="onboard-sub">可多选，AI 会为每个平台生成专属风格的内容。</div>
+      <div class="plat-row" id="ob_platRow" style="margin-bottom:24px;">
+        <div class="plat-pill" data-plat="wx"   data-cls="p-wx"   onclick="togglePlat(this)"><span class="pdot2" style="background:#52b745"></span>微信公众号</div>
+        <div class="plat-pill" data-plat="dy"   data-cls="p-dy"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e84040"></span>抖音</div>
+        <div class="plat-pill" data-plat="xhs"  data-cls="p-xhs"  onclick="togglePlat(this)"><span class="pdot2" style="background:#e84074"></span>小红书</div>
+        <div class="plat-pill" data-plat="wb"   data-cls="p-wb"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e87030"></span>微博</div>
+        <div class="plat-pill" data-plat="zhi"  data-cls="p-zhi"  onclick="togglePlat(this)"><span class="pdot2" style="background:#4070e8"></span>知乎</div>
+        <div class="plat-pill" data-plat="bili" data-cls="p-bili" onclick="togglePlat(this)"><span class="pdot2" style="background:#8888e8"></span>B站</div>
+        <div class="plat-pill" data-plat="yt"   data-cls="p-yt"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e84040"></span>YouTube</div>
+        <div class="plat-pill" data-plat="ig"   data-cls="p-ig"   onclick="togglePlat(this)"><span class="pdot2" style="background:#d840a0"></span>Instagram</div>
+      </div>
+      <div class="btn-row" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="obPrev()">← 返回</button>
+        <button class="btn btn-primary" onclick="finishOnboard()">完成设置，进入工作台 ✓</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="app" id="mainApp" style="display:none;">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-section">创作</div>
+    <div class="sb-item active" onclick="showPage('script',this)"><span>◈</span>口播脚本</div>
+    <div class="sb-item" onclick="showPage('copy',this)"><span>✦</span>多平台文案</div>
+    <div class="sb-item" onclick="showPage('batch',this)"><span>▦</span>批量选题</div>
+    <div class="sb-section">分析</div>
+    <div class="sb-item" onclick="showPage('trend',this)"><span>◎</span>热门拆解</div>
+    <div class="sb-item" onclick="showPage('comment',this)"><span>◉</span>评论分析</div>
+    <div class="sb-section">素材</div>
+    <div class="sb-item" onclick="showPage('imgprompt',this)"><span>◻</span>配图提示词</div>
+    <div class="sb-section">账号</div>
+    <div class="sb-item" onclick="showPage('brand',this)"><span>◷</span>品牌设置</div>
+    <div class="sb-item" onclick="showPage('pricing',this)"><span>◈</span>升级套餐</div>
+    <div class="sb-bottom">
+      <button class="upgrade-btn" onclick="showPage('pricing',null)">升级专业版 →</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ===== 口播脚本 ===== -->
+    <div id="page-script" class="page active">
+      <div class="card">
+        <div class="card-title">爆款口播脚本生成</div>
+        <div class="card-sub">自动生成「钩子 → 铺垫 → 转折 → 干货 → CTA」完整结构</div>
+        <div class="tip-box" id="scriptIndustryTip"></div>
+        <div class="form-row">
+          <label class="form-label">内容主题</label>
+          <input type="text" id="scriptTopic" placeholder="例：产品使用误区、行业干货分享、用户案例故事..." />
+        </div>
+        <div class="form-row">
+          <label class="form-label">内容方向</label>
+          <div class="tag-row" id="scriptDir">
+            <span class="tag sel" onclick="selTag(this,'scriptDir')">干货分享</span>
+            <span class="tag" onclick="selTag(this,'scriptDir')">产品推荐</span>
+            <span class="tag" onclick="selTag(this,'scriptDir')">用户故事</span>
+            <span class="tag" onclick="selTag(this,'scriptDir')">避坑指南</span>
+            <span class="tag" onclick="selTag(this,'scriptDir')">答疑解惑</span>
+            <span class="tag" onclick="selTag(this,'scriptDir')">热点借势</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">视频时长</label>
+          <div class="tag-row" id="scriptLen">
+            <span class="tag sel" onclick="selTag(this,'scriptLen')">60秒以内</span>
+            <span class="tag" onclick="selTag(this,'scriptLen')">1-3分钟</span>
+            <span class="tag" onclick="selTag(this,'scriptLen')">3-5分钟</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="genScript()" id="scriptBtn">生成口播脚本</button>
+      </div>
+      <div class="loading" id="scriptLoading"><div class="spinner"></div>生成结构化脚本中...</div>
+      <div class="err-box" id="scriptErr"></div>
+      <div id="scriptResult"></div>
+    </div>
+
+    <!-- ===== 多平台文案 ===== -->
+    <div id="page-copy" class="page">
+      <div class="card">
+        <div class="card-title">多平台文案生成</div>
+        <div class="card-sub">一个主题，生成各平台专属风格文案 + 热门话题标签组合</div>
+        <div class="form-row">
+          <label class="form-label">内容主题</label>
+          <input type="text" id="copyTopic" placeholder="例：新品上线、行业干货、用户案例..." />
+        </div>
+        <div class="form-row">
+          <label class="form-label">目标平台</label>
+          <div class="plat-row" id="copyPlatRow">
+            <div class="plat-pill" data-plat="wx"   data-cls="p-wx"   onclick="togglePlat(this)"><span class="pdot2" style="background:#52b745"></span>微信公众号</div>
+            <div class="plat-pill" data-plat="dy"   data-cls="p-dy"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e84040"></span>抖音</div>
+            <div class="plat-pill" data-plat="xhs"  data-cls="p-xhs"  onclick="togglePlat(this)"><span class="pdot2" style="background:#e84074"></span>小红书</div>
+            <div class="plat-pill" data-plat="wb"   data-cls="p-wb"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e87030"></span>微博</div>
+            <div class="plat-pill" data-plat="zhi"  data-cls="p-zhi"  onclick="togglePlat(this)"><span class="pdot2" style="background:#4070e8"></span>知乎</div>
+            <div class="plat-pill" data-plat="bili" data-cls="p-bili" onclick="togglePlat(this)"><span class="pdot2" style="background:#8888e8"></span>B站</div>
+            <div class="plat-pill" data-plat="yt"   data-cls="p-yt"   onclick="togglePlat(this)"><span class="pdot2" style="background:#e84040"></span>YouTube</div>
+            <div class="plat-pill" data-plat="ig"   data-cls="p-ig"   onclick="togglePlat(this)"><span class="pdot2" style="background:#d840a0"></span>Instagram</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">热门话题标签 <span class="hint">勾选后 AI 优先匹配这些话题的流量池</span></label>
+          <div class="tag-row" id="copyTagPool"></div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">自定义话题 <span class="hint">账号专属标签，逗号分隔</span></label>
+          <input type="text" id="copyCustomTags" placeholder="例：品牌名话题、活动专属话题..." />
+        </div>
+        <div class="form-row">
+          <label class="form-label">每平台话题数量</label>
+          <div class="tag-row" id="copyTagCount">
+            <span class="tag" onclick="selTag(this,'copyTagCount')">3个</span>
+            <span class="tag sel" onclick="selTag(this,'copyTagCount')">5个</span>
+            <span class="tag" onclick="selTag(this,'copyTagCount')">8个</span>
+            <span class="tag" onclick="selTag(this,'copyTagCount')">10个</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="genCopy()" id="copyBtn">生成文案 + 热门话题</button>
+      </div>
+      <div class="loading" id="copyLoading"><div class="spinner"></div>生成中...</div>
+      <div class="err-box" id="copyErr"></div>
+      <div id="copyResult"></div>
+    </div>
+
+    <!-- ===== 批量选题 ===== -->
+    <div id="page-batch" class="page">
+      <div class="card">
+        <div class="card-title">批量选题 + 标题 + 封面文案</div>
+        <div class="card-sub">一键生成可直接交给博主/团队执行的完整内容包，导出 Word 即可发出</div>
+        <div class="form-row">
+          <label class="form-label">本期推广目标</label>
+          <div class="tag-row" id="batchGoal">
+            <span class="tag sel" onclick="selTag(this,'batchGoal')">引流涨粉</span>
+            <span class="tag" onclick="selTag(this,'batchGoal')">产品转化</span>
+            <span class="tag" onclick="selTag(this,'batchGoal')">品牌曝光</span>
+            <span class="tag" onclick="selTag(this,'batchGoal')">活动促销</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">生成数量</label>
+          <div class="tag-row" id="batchNum">
+            <span class="tag sel" onclick="selTag(this,'batchNum')">5条</span>
+            <span class="tag" onclick="selTag(this,'batchNum')">10条</span>
+            <span class="tag" onclick="selTag(this,'batchNum')">15条</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">补充说明 <span class="hint">可不填</span></label>
+          <input type="text" id="batchNote" placeholder="例：结合近期热点、主推某款产品、针对新用户..." />
+        </div>
+        <button class="btn btn-primary" onclick="genBatch()" id="batchBtn">批量生成内容包</button>
+      </div>
+      <div class="loading" id="batchLoading"><div class="spinner"></div>批量生成中，约15-30秒...</div>
+      <div class="err-box" id="batchErr"></div>
+      <div id="batchResult"></div>
+    </div>
+
+    <!-- ===== 热门拆解 ===== -->
+    <div id="page-trend" class="page">
+      <div class="card">
+        <div class="card-title">热门内容拆解</div>
+        <div class="card-sub">粘贴平台热门内容标题，提取爆款结构、高频词、用户情绪，输出可用选题</div>
+        <div class="notice">在抖音/小红书/B站搜索您的行业关键词，把热门内容标题复制粘贴到下方（每行一条）</div>
+        <div class="form-row">
+          <label class="form-label">粘贴热门内容标题 <span class="hint">建议 10-20 条</span></label>
+          <textarea id="trendInput" rows="8" placeholder="每行粘贴一条标题..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="genTrend()" id="trendBtn">开始拆解分析</button>
+      </div>
+      <div class="loading" id="trendLoading"><div class="spinner"></div>AI 分析内容规律中...</div>
+      <div class="err-box" id="trendErr"></div>
+      <div id="trendResult"></div>
+    </div>
+
+    <!-- ===== 评论分析 ===== -->
+    <div id="page-comment" class="page">
+      <div class="card">
+        <div class="card-title">用户评论分析</div>
+        <div class="card-sub">粘贴平台评论，提取用户真实痛点、高频词、情绪分布，直接指导内容方向</div>
+        <div class="notice">在抖音/小红书评论区复制评论内容，粘贴到下方即可（建议 20 条以上）</div>
+        <div class="form-row">
+          <label class="form-label">粘贴用户评论</label>
+          <textarea id="commentInput" rows="10" placeholder="每行粘贴一条评论..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="genComment()" id="commentBtn">分析评论</button>
+      </div>
+      <div class="loading" id="commentLoading"><div class="spinner"></div>分析用户心理中...</div>
+      <div class="err-box" id="commentErr"></div>
+      <div id="commentResult"></div>
+    </div>
+
+    <!-- ===== 配图提示词 ===== -->
+    <div id="page-imgprompt" class="page">
+      <div class="card">
+        <div class="card-title">配图提示词生成</div>
+        <div class="card-sub">生成可直接用于即梦AI、豆包、Midjourney 的图片描述词</div>
+        <div class="form-row">
+          <label class="form-label">图片主题</label>
+          <input type="text" id="imgTopic" placeholder="例：产品展示、生活场景、品牌氛围图..." />
+        </div>
+        <div class="form-row">
+          <label class="form-label">图片用途</label>
+          <div class="tag-row" id="imgUse">
+            <span class="tag sel" onclick="selTag(this,'imgUse')">小红书封面</span>
+            <span class="tag" onclick="selTag(this,'imgUse')">产品主图</span>
+            <span class="tag" onclick="selTag(this,'imgUse')">生活场景图</span>
+            <span class="tag" onclick="selTag(this,'imgUse')">品牌宣传图</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">图片风格</label>
+          <div class="tag-row" id="imgStyle">
+            <span class="tag sel" onclick="selTag(this,'imgStyle')">清新简约</span>
+            <span class="tag" onclick="selTag(this,'imgStyle')">高级质感</span>
+            <span class="tag" onclick="selTag(this,'imgStyle')">温暖治愈</span>
+            <span class="tag" onclick="selTag(this,'imgStyle')">活力年轻</span>
+            <span class="tag" onclick="selTag(this,'imgStyle')">专业商务</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="genImg()" id="imgBtn">生成配图提示词</button>
+      </div>
+      <div class="loading" id="imgLoading"><div class="spinner"></div>生成中...</div>
+      <div class="err-box" id="imgErr"></div>
+      <div id="imgResult"></div>
+    </div>
+
+    <!-- ===== 品牌设置 ===== -->
+    <div id="page-brand" class="page">
+      <div class="card">
+        <div class="card-title">品牌 & 账号设置</div>
+        <div class="card-sub">修改后所有功能都会自动使用最新信息</div>
+        <div class="form-row">
+          <label class="form-label">行业 / 赛道</label>
+          <input type="text" id="brandIndustry" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">品牌 / IP 名称</label>
+          <input type="text" id="brandName" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">核心卖点</label>
+          <input type="text" id="brandPoint" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">目标受众</label>
+          <input type="text" id="brandAudience" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">主要产品 / 服务</label>
+          <input type="text" id="brandProduct" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveBrand()">保存设置</button>
+          <span id="brandSavedMsg" style="font-size:13px;color:#1D9E75;display:none;">已保存 ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 定价页 ===== -->
+    <div id="page-pricing" class="page">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="font-size:22px;font-weight:600;margin-bottom:6px;">选择套餐</div>
+        <div style="font-size:14px;color:#888;">所有套餐均含 7 天免费试用 · 随时可取消</div>
+      </div>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-name">入门版</div>
+          <div class="price-num">¥29</div>
+          <div class="price-period">/月</div>
+          <div class="divider"></div>
+          <div class="price-feat">
+            ✓ 每月 30 次 AI 生成<br>
+            ✓ 口播脚本 + 多平台文案<br>
+            ✓ 热门话题标签<br>
+            ✗ 批量选题生成<br>
+            ✗ 评论分析<br>
+            ✗ 导出 Word 报告
+          </div>
+          <button class="btn btn-outline" style="width:100%;justify-content:center;">选择入门版</button>
+        </div>
+        <div class="price-card featured">
+          <div style="text-align:center;margin-bottom:10px;"><span class="featured-tag">最受欢迎</span></div>
+          <div class="price-name">专业版</div>
+          <div class="price-num">¥89</div>
+          <div class="price-period">/月</div>
+          <div class="divider"></div>
+          <div class="price-feat">
+            ✓ 每月 200 次 AI 生成<br>
+            ✓ 全部 6 大功能模块<br>
+            ✓ 热门话题标签<br>
+            ✓ 批量选题（最多15条）<br>
+            ✓ 评论分析 + 热门拆解<br>
+            ✓ 导出 Word 报告
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;">升级专业版</button>
+        </div>
+        <div class="price-card">
+          <div class="price-name">团队版</div>
+          <div class="price-num">¥299</div>
+          <div class="price-period">/月</div>
+          <div class="divider"></div>
+          <div class="price-feat">
+            ✓ 无限次 AI 生成<br>
+            ✓ 5 个子账号<br>
+            ✓ 全部功能 + 优先级<br>
+            ✓ 批量生成（无上限）<br>
+            ✓ 专属客服支持<br>
+            ✓ 自定义行业模板库
+          </div>
+          <button class="btn btn-outline" style="width:100%;justify-content:center;">选择团队版</button>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:28px;font-size:13px;color:#aaa;">
+        支持微信支付 · 支付宝 · 信用卡 &nbsp;|&nbsp; 发票请联系客服
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ===== 全局状态 =====
+let credits = 0;
+let userToken = null;
+let userPlan = 'trial';
+let obStep = 1;
+let brand = { industry:'', name:'', point:'', audience:'', product:'' };
+const TOTAL_STEPS = 4;
+
+// ===== 启动：检查本地 token ===================================
+window.addEventListener('DOMContentLoaded', async () => {
+  const savedToken = localStorage.getItem('cp_token');
+  if (savedToken) {
+    try {
+      const res = await fetch('/api/auth', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'verify', token: savedToken })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLoggedIn(data);
+        return;
+      }
+    } catch(e) {}
+    localStorage.removeItem('cp_token');
+  }
+  // 没有有效 token，显示登录界面
+  document.getElementById('loginOverlay').classList.remove('hidden');
+});
+
+// ===== 登录 / 注册 / 体验 =====================================
+function switchLoginTab(tab, el) {
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPwd').value;
+  const err   = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  if (!email || !pwd) { showLoginErr(err, '请填写邮箱和密码'); return; }
+  btn.disabled = true; btn.textContent = '登录中...';
+  try {
+    const res = await fetch('/api/auth', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', email, password: pwd })
+    });
+    const data = await res.json();
+    if (!res.ok) { showLoginErr(err, data.error || '登录失败'); return; }
+    localStorage.setItem('cp_token', data.token);
+    setLoggedIn(data);
+  } catch(e) {
+    showLoginErr(err, '网络错误，请稍后重试');
+  } finally {
+    btn.disabled = false; btn.textContent = '登录';
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value.trim();
+  const pwd   = document.getElementById('regPwd').value;
+  const err   = document.getElementById('regErr');
+  const btn   = document.getElementById('regBtn');
+  if (!email || pwd.length < 6) { showLoginErr(err, '请填写邮箱，密码至少6位'); return; }
+  // 演示模式：注册成为免费试用用户
+  btn.disabled = true; btn.textContent = '注册中...';
+  setTimeout(() => {
+    showLoginErr(err, '演示模式：注册功能需接入数据库后启用。请使用"免费体验"按钮。');
+    btn.disabled = false; btn.textContent = '注册并开始使用';
+  }, 800);
+}
+
+function doTrial() {
+  setLoggedIn({ token: null, plan: 'trial', credits: 3, email: '' });
+}
+
+function doLogout() {
+  localStorage.removeItem('cp_token');
+  userToken = null; userPlan = 'trial'; credits = 0;
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('onboardOverlay').classList.add('hidden');
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('userEmail').style.display = 'none';
+}
+
+function setLoggedIn(data) {
+  userToken = data.token;
+  userPlan  = data.plan || 'trial';
+  credits   = data.credits || 3;
+  updateCreditsUI();
+
+  // 更新 nav
+  const planLabels = { free:'免费版', pro:'专业版', team:'团队版', trial:'体验版' };
+  const planClasses = { free:'plan-free', pro:'plan-pro', team:'plan-team', trial:'plan-free' };
+  const badge = document.getElementById('planBadge');
+  badge.textContent = planLabels[userPlan] || '免费版';
+  badge.className = 'plan-badge ' + (planClasses[userPlan] || 'plan-free');
+
+  if (data.email) {
+    const emailEl = document.getElementById('userEmail');
+    emailEl.textContent = data.email;
+    emailEl.style.display = 'inline';
+  }
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+
+  // 关闭登录，打开 onboarding
+  document.getElementById('loginOverlay').classList.add('hidden');
+  obStep = 1; renderObStep();
+  document.getElementById('onboardOverlay').classList.remove('hidden');
+}
+
+function showLoginErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+function updateCreditsUI() {
+  const txt = userPlan === 'team'
+    ? '无限次生成'
+    : `剩余 ${credits} 次生成`;
+  document.getElementById('creditsDisplay').textContent = txt;
+}
+
+// 每个行业对应的默认话题池
+const INDUSTRY_TAGS = {
+  '教育培训':   ['知识分享','干货','学习方法','在线教育','成长'],
+  '美妆护肤':   ['护肤','美妆','skincare','好物推荐','成分党'],
+  '食品餐饮':   ['美食','探店','好吃的','餐厅推荐','吃货'],
+  '健康健身':   ['健身','减脂','运动','健康生活','自律'],
+  '电商零售':   ['好物推荐','种草','购物','性价比','开箱'],
+  '职场副业':   ['职场','副业','赚钱','成长','打工人'],
+  '旅游出行':   ['旅游','旅行','探索','攻略','打卡'],
+  '家居生活':   ['家居','家装','生活方式','好物','ins风'],
+  '其他行业':   ['好物推荐','干货','分享','种草','日常'],
+};
+
+// ===== Onboarding =====
+function buildProgressDots() {
+  const c = document.getElementById('progressDots');
+  c.innerHTML = '';
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'pdot' + (i < obStep ? ' done' : i === obStep ? ' active' : '');
+    c.appendChild(d);
+  }
+}
+
+function obNext() {
+  if (obStep === 2) {
+    const ind = document.querySelector('#industryGrid .ind-card.sel');
+    if (!ind && !document.getElementById('customIndustryInput').value.trim()) {
+      alert('请选择您的行业'); return;
+    }
+  }
+  if (obStep === 3) {
+    const name = document.getElementById('ob_brandName').value.trim();
+    if (!name) { alert('请填写品牌/IP名称'); return; }
+  }
+  if (obStep < TOTAL_STEPS) { obStep++; renderObStep(); }
+}
+function obPrev() { if (obStep > 1) { obStep--; renderObStep(); } }
+
+function renderObStep() {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    document.getElementById('ob' + i).classList.toggle('active', i === obStep);
+  }
+  buildProgressDots();
+}
+
+function selIndustry(el, name, desc) {
+  document.querySelectorAll('#industryGrid .ind-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  const customRow = document.getElementById('customIndustryRow');
+  customRow.style.display = name === '其他行业' ? 'block' : 'none';
+  if (name !== '其他行业') brand.industry = name;
+}
+
+function togglePlat(el) {
+  const cls = el.dataset.cls;
+  if (el.classList.contains(cls)) el.classList.remove(cls);
+  else el.classList.add(cls);
+}
+
+function finishOnboard() {
+  // 收集行业
+  const selInd = document.querySelector('#industryGrid .ind-card.sel');
+  if (selInd) {
+    const indName = selInd.querySelector('.ind-name').textContent;
+    brand.industry = indName === '其他行业'
+      ? (document.getElementById('customIndustryInput').value.trim() || '其他')
+      : indName;
+  }
+  // 收集品牌信息
+  brand.name     = document.getElementById('ob_brandName').value.trim();
+  brand.point    = document.getElementById('ob_brandPoint').value.trim();
+  brand.audience = document.getElementById('ob_brandAudience').value.trim();
+  brand.product  = document.getElementById('ob_brandProduct').value.trim();
+
+  // 同步到品牌设置页
+  document.getElementById('brandIndustry').value = brand.industry;
+  document.getElementById('brandName').value     = brand.name;
+  document.getElementById('brandPoint').value    = brand.point;
+  document.getElementById('brandAudience').value = brand.audience;
+  document.getElementById('brandProduct').value  = brand.product;
+
+  // 初始化行业相关内容
+  initIndustryContent();
+
+  // 关闭 onboarding，显示主界面
+  document.getElementById('onboardOverlay').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'flex';
+}
+
+function initIndustryContent() {
+  const ind = brand.industry;
+  const tags = INDUSTRY_TAGS[ind] || INDUSTRY_TAGS['其他行业'];
+
+  // 脚本页行业提示
+  document.getElementById('scriptIndustryTip').textContent =
+    `已识别行业：${ind}。AI 将基于「${brand.name}」的定位生成专属内容，话题和风格自动适配。`;
+
+  // 多平台文案话题池
+  const pool = document.getElementById('copyTagPool');
+  pool.innerHTML = tags.map(t =>
+    `<span class="tag sel" onclick="toggleTag(this)">${t}</span>`
+  ).join('') + `<span class="tag sel" onclick="toggleTag(this)">${ind}</span>`;
+}
+
+function goHome() {
+  // 重置 onboarding 回到第一步
+  obStep = 1; renderObStep();
+  document.getElementById('onboardOverlay').classList.remove('hidden');
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+// 启动时渲染进度
+buildProgressDots();
+
+// ===== 页面导航 =====
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// ===== Tag helpers =====
+function toggleTag(el) { el.classList.toggle('sel'); }
+function selTag(el, group) {
+  document.querySelectorAll('#' + group + ' .tag').forEach(t => t.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function getSelTags(groupId) {
+  return [...document.querySelectorAll('#' + groupId + ' .tag.sel')].map(t => t.textContent.trim());
+}
+function getSelPlats(rowId) {
+  const platNames = { wx:'微信公众号',dy:'抖音',xhs:'小红书',wb:'微博',zhi:'知乎',bili:'B站',yt:'YouTube',ig:'Instagram' };
+  return [...document.querySelectorAll('#' + rowId + ' .plat-pill')].filter(p => {
+    return [...p.classList].some(c => c.startsWith('p-'));
+  }).map(p => platNames[p.dataset.plat]).filter(Boolean);
+}
+
+function saveBrand() {
+  brand.industry = document.getElementById('brandIndustry').value;
+  brand.name     = document.getElementById('brandName').value;
+  brand.point    = document.getElementById('brandPoint').value;
+  brand.audience = document.getElementById('brandAudience').value;
+  brand.product  = document.getElementById('brandProduct').value;
+  initIndustryContent();
+  const m = document.getElementById('brandSavedMsg');
+  m.style.display = 'inline'; setTimeout(() => m.style.display = 'none', 2000);
+}
+
+// ===== API — 所有请求走后端，Key 不暴露在前端 ================
+async function callClaude(prompt, maxTokens = 1200) {
+  // 次数检查（team 套餐不限制）
+  if (userPlan !== 'team' && credits <= 0) {
+    document.getElementById('page-pricing').classList.add('active');
+    throw new Error('NO_CREDITS');
+  }
+
+  const res = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: userToken, prompt, maxTokens })
+  });
+
+  const data = await res.json();
+
+  if (res.status === 403 && data.code === 'NO_CREDITS') {
+    showPage('pricing', null);
+    throw new Error('次数已用完，请升级套餐');
+  }
+  if (!res.ok) throw new Error(data.error || 'API 请求失败');
+
+  // 同步服务端返回的剩余次数
+  if (typeof data.creditsLeft === 'number') {
+    credits = data.creditsLeft;
+    updateCreditsUI();
+  }
+  return data.text;
+}
+
+function parseJSON(t) { return JSON.parse(t.replace(/```json|```/g,'').trim()); }
+
+function useCredit() {
+  // 次数已在 callClaude 内由服务端扣减并同步，这里仅为兼容旧调用保留
+}
+function showErr(id, msg) { const e=document.getElementById(id); e.textContent=msg; e.style.display='block'; }
+
+// ===== 复制 =====
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent; btn.textContent = '已复制 ✓'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 2000);
+  });
+}
+function copyKpill(el, tag) {
+  navigator.clipboard.writeText(tag).then(() => {
+    const orig = el.textContent; el.textContent = '✓'; el.style.background = '#1D9E75'; el.style.color = '#fff';
+    setTimeout(() => { el.textContent = orig; el.style.background=''; el.style.color=''; }, 1500);
+  });
+}
+
+// ===== 下载 =====
+function downloadMd(filename, content) {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([content], {type:'text/markdown;charset=utf-8'})),
+    download: filename
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ===== 1. 口播脚本 =====
+async function genScript() {
+  const topic = document.getElementById('scriptTopic').value.trim();
+  if (!topic) { alert('请填写内容主题'); return; }
+  const dir = getSelTags('scriptDir')[0] || '干货分享';
+  const len = getSelTags('scriptLen')[0] || '60秒以内';
+  document.getElementById('scriptLoading').classList.add('show');
+  document.getElementById('scriptResult').innerHTML = '';
+  document.getElementById('scriptErr').style.display = 'none';
+  document.getElementById('scriptBtn').disabled = true;
+
+  const prompt = `你是资深自媒体口播脚本策划师。
+行业：${brand.industry}，IP：${brand.name}，定位：${brand.point}，受众：${brand.audience}
+${brand.product ? '产品：' + brand.product : ''}
+
+为以下主题生成完整爆款口播脚本：
+主题：${topic}，方向：${dir}，时长：${len}
+
+脚本结构：
+1. 钩子句（Hook）：前3秒抓注意力，不超过2句
+2. 铺垫：描述目标用户痛点，2-3句
+3. 转折：引出解决方案，1-2句
+4. 干货要点：3个清晰要点
+5. CTA：自然植入品牌，引导关注/购买，1-2句
+
+只输出JSON：
+{"title":"视频标题","hook":"","buildup":"","turn":"","points":["","",""],"cta":"","cover_text":"封面文案8字内","tags":["","","","",""],"duration_tip":""}`;
+
+  try {
+    const text = await callClaude(prompt);
+    useCredit();
+    renderScript(parseJSON(text));
+  } catch(e) {
+    showErr('scriptErr','生成失败，请检查网络后重试');
+  } finally {
+    document.getElementById('scriptLoading').classList.remove('show');
+    document.getElementById('scriptBtn').disabled = false;
+  }
+}
+
+function renderScript(d) {
+  const full = `${d.hook}\n\n${d.buildup}\n\n${d.turn}\n\n${d.points.join('\n\n')}\n\n${d.cta}`;
+  const mdContent = `# ${d.title}\n\n## 口播脚本\n\n### 钩子句\n${d.hook}\n\n### 铺垫\n${d.buildup}\n\n### 转折\n${d.turn}\n\n### 干货要点\n${d.points.map((p,i)=>`${i+1}. ${p}`).join('\n\n')}\n\n### CTA\n${d.cta}\n\n---\n封面文案：${d.cover_text}\n话题标签：${d.tags.map(t=>'#'+t).join(' ')}\n${d.duration_tip}\n\n*由内容星球生成 | ${brand.name}*`;
+
+  document.getElementById('scriptResult').innerHTML = `
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px;">
+      <div class="card-title" style="flex:1;">${d.title}</div>
+      <span style="font-size:12px;color:#888;background:#f5f4f0;padding:4px 10px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${d.duration_tip}</span>
+    </div>
+    <div style="margin-bottom:12px;"><span class="script-tag st-hook">🎣 钩子</span>
+      <div style="background:#fff8f8;padding:10px 12px;border-radius:8px;border-left:3px solid #e84040;font-size:13.5px;line-height:1.7;">${d.hook}</div></div>
+    <div style="margin-bottom:12px;"><span class="script-tag st-build">📍 铺垫</span>
+      <div style="background:#fffaf5;padding:10px 12px;border-radius:8px;border-left:3px solid #e87030;font-size:13.5px;line-height:1.7;">${d.buildup}</div></div>
+    <div style="margin-bottom:12px;"><span class="script-tag st-turn">↩ 转折</span>
+      <div style="background:#f5f8ff;padding:10px 12px;border-radius:8px;border-left:3px solid #4070d8;font-size:13.5px;line-height:1.7;">${d.turn}</div></div>
+    <div style="margin-bottom:12px;"><span class="script-tag" style="background:#f0f8ff;color:#4070d8;">📌 干货</span>
+      ${d.points.map(p=>`<div style="padding:8px 12px;border-radius:6px;background:#f9f8f5;margin-bottom:6px;font-size:13.5px;line-height:1.7;">${p}</div>`).join('')}</div>
+    <div style="margin-bottom:14px;"><span class="script-tag st-cta">✅ CTA</span>
+      <div style="background:#f0faf5;padding:10px 12px;border-radius:8px;border-left:3px solid #1D9E75;font-size:13.5px;line-height:1.7;">${d.cta}</div></div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:12px;">
+      <div><span style="color:#888;">封面文案：</span><strong>${d.cover_text}</strong></div>
+      <div>${d.tags.map(t=>`<span class="kpill" onclick="copyKpill(this,'#${t}')">#${t}</span>`).join('')}</div>
+    </div>
+    <div class="out-actions">
+      <button class="copy-btn" onclick="copyText(this,\`${full.replace(/`/g,'\\`')}\`)">复制完整脚本</button>
+      <button class="copy-btn" onclick="copyText(this,'${d.title.replace(/'/g,"\\'")}')">复制标题</button>
+      <button class="copy-btn" onclick="copyText(this,'${d.cover_text}')">复制封面文案</button>
+      <button class="btn-ghost btn-sm" onclick="downloadMd('口播脚本.md',\`${mdContent.replace(/`/g,'\\`')}\`)" style="margin-left:auto;font-size:12px;color:#7F77DD;">导出报告</button>
+    </div>
+  </div>`;
+}
+
+// ===== 2. 多平台文案 =====
+async function genCopy() {
+  const topic = document.getElementById('copyTopic').value.trim();
+  if (!topic) { alert('请填写内容主题'); return; }
+  const plats = getSelPlats('copyPlatRow');
+  if (!plats.length) { alert('请至少选择一个平台'); return; }
+  const selTags = [...document.querySelectorAll('#copyTagPool .tag.sel')].map(t=>t.textContent.trim());
+  const customRaw = document.getElementById('copyCustomTags').value.trim();
+  const customTags = customRaw ? customRaw.split(/[，,、]/).map(t=>t.trim()).filter(Boolean) : [];
+  const allTags = [...selTags, ...customTags];
+  const tagCount = parseInt(getSelTags('copyTagCount')[0]) || 5;
+
+  document.getElementById('copyLoading').classList.add('show');
+  document.getElementById('copyResult').innerHTML = '';
+  document.getElementById('copyErr').style.display = 'none';
+  document.getElementById('copyBtn').disabled = true;
+
+  const prompt = `你是资深自媒体文案 + 话题运营专家。
+行业：${brand.industry}，IP：${brand.name}，定位：${brand.point}，受众：${brand.audience}
+${brand.product ? '产品：' + brand.product : ''}
+
+内容主题：${topic}
+目标平台：${plats.join('、')}
+参考话题方向：${allTags.length ? allTags.join('、') : brand.industry + '、好物推荐、干货分享'}
+
+为每个平台生成：1.专属风格完整文案（自然植入品牌）2.最优话题标签${tagCount}个 3.话题选择说明
+
+文案风格：
+- 微信公众号：300-400字，分段，有小标题
+- 小红书：150-200字，多换行，种草风，结尾加话题
+- 抖音：60-80字口播，强开头，结尾引导互动
+- B站：100-150字简介，专业感
+- 微博：80字内，制造话题感
+- 知乎：200字，专业权威
+- YouTube/Instagram：英文，简洁
+
+只输出JSON：
+[{"platform":"","content":"正文（不含话题）","tags":["",""],"tags_tip":"一句话","copy_with_tags":"正文+话题完整版"}]`;
+
+  try {
+    const text = await callClaude(prompt, 1800);
+    useCredit();
+    renderCopy(parseJSON(text));
+  } catch(e) {
+    showErr('copyErr','生成失败，请重试');
+  } finally {
+    document.getElementById('copyLoading').classList.remove('show');
+    document.getElementById('copyBtn').disabled = false;
+  }
+}
+
+const platEmoji = { '微信公众号':'💚','抖音':'🎵','小红书':'🌸','微博':'🔶','知乎':'💙','B站':'💜','YouTube':'▶️','Instagram':'🌺' };
+
+function renderCopy(copies) {
+  copies.forEach(c => { if (!c.copy_with_tags) c.copy_with_tags = c.content + '\n\n' + c.tags.map(t=>'#'+t).join(' '); });
+  let html = '<div class="tabs">' + copies.map((c,i)=>`<div class="tab-btn${i===0?' active':''}" onclick="swCopyTab(${i})">${platEmoji[c.platform]||'📝'} ${c.platform}</div>`).join('') + '</div>';
+  copies.forEach((c,i) => {
+    const sc = c.content.replace(/'/g,"\\'").replace(/\n/g,'\\n').replace(/`/g,'\\`');
+    const sw = c.copy_with_tags.replace(/'/g,"\\'").replace(/\n/g,'\\n').replace(/`/g,'\\`');
+    const st = c.tags.map(t=>'#'+t).join(' ').replace(/'/g,"\\'");
+    html += `<div class="out-block" id="cv${i}" style="${i>0?'display:none':''}">
+      <div class="out-label">${platEmoji[c.platform]||'📝'} ${c.platform}</div>
+      <div class="out-text" style="margin-bottom:14px;">${c.content.replace(/\n/g,'<br>')}</div>
+      <div style="background:#f0eff8;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:600;color:#534AB7;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">热门话题标签</div>
+        <div style="margin-bottom:7px;">${c.tags.map(t=>`<span class="kpill" onclick="copyKpill(this,'#${t}')">#${t}</span>`).join('')}</div>
+        <div style="font-size:11.5px;color:#7F77DD;">💡 ${c.tags_tip||'点击单个话题可单独复制'}</div>
+      </div>
+      <div class="out-actions">
+        <button class="copy-btn" onclick="copyText(this,'${sc}')">复制文案</button>
+        <button class="copy-btn" onclick="copyText(this,'${st}')">复制全部话题</button>
+        <button class="copy-btn primary" onclick="copyText(this,'${sw}')">一键复制（文案+话题）</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('copyResult').innerHTML = html;
+}
+function swCopyTab(i) {
+  document.querySelectorAll('.tab-btn').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('[id^="cv"]').forEach((b,j)=>b.style.display=i===j?'':'none');
+}
+
+// ===== 3. 批量选题 =====
+async function genBatch() {
+  const goal = getSelTags('batchGoal')[0]||'引流涨粉';
+  const numStr = getSelTags('batchNum')[0]||'5条';
+  const num = parseInt(numStr);
+  const note = document.getElementById('batchNote').value;
+  document.getElementById('batchLoading').classList.add('show');
+  document.getElementById('batchResult').innerHTML = '';
+  document.getElementById('batchErr').style.display = 'none';
+  document.getElementById('batchBtn').disabled = true;
+
+  const prompt = `你是自媒体内容策划专家。
+行业：${brand.industry}，IP：${brand.name}，定位：${brand.point}，受众：${brand.audience}
+${brand.product ? '产品：' + brand.product : ''}
+推广目标：${goal}${note ? '，补充：' + note : ''}
+
+批量生成${num}条完整内容包（覆盖干货型/情绪型/案例型/对比型等不同角度）。
+只输出JSON：
+[{"topic":"选题方向","title":"完整标题（含符号）","cover":"封面文案8字内","angle":"角度一句话","framework":["框架要点1","要点2","要点3"],"platforms":["适合平台1","平台2"]}]`;
+
+  try {
+    const text = await callClaude(prompt, 2000);
+    useCredit();
+    renderBatch(parseJSON(text));
+  } catch(e) {
+    showErr('batchErr','生成失败，请重试');
+  } finally {
+    document.getElementById('batchLoading').classList.remove('show');
+    document.getElementById('batchBtn').disabled = false;
+  }
+}
+
+function renderBatch(data) {
+  const pb = { '微信公众号':'background:#e8f5e2;color:#2d7a22','抖音':'background:#fff0f0;color:#a82020','小红书':'background:#fff0f3;color:#a82050','B站':'background:#f0f0ff;color:#4040b0','微博':'background:#fff4ec;color:#a84818' };
+  let mdContent = `# 内容执行包\n生成时间：${new Date().toLocaleDateString()}\n品牌：${brand.name}\n\n---\n\n`;
+  data.forEach((item,i) => {
+    mdContent += `## ${i+1}. ${item.topic}\n**标题：** ${item.title}\n**封面：** ${item.cover}\n**平台：** ${(item.platforms||[]).join('、')}\n**框架：**\n${item.framework.map((f,j)=>`${j+1}. ${f}`).join('\n')}\n\n---\n\n`;
+  });
+  mdContent += `*由内容星球生成 | ${brand.name}*`;
+
+  let html = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="card-title">共 ${data.length} 条内容包</div>
+      <button class="btn-ghost btn-sm" onclick="downloadMd('内容执行包.md',\`${mdContent.replace(/`/g,'\\`')}\`)" style="color:#7F77DD;font-size:12px;">导出 Word 报告</button>
+    </div>
+    <div style="overflow-x:auto;"><table class="batch-table">
+      <thead><tr><th>#</th><th>标题</th><th>封面文案</th><th>内容框架</th><th>适合平台</th><th></th></tr></thead>
+      <tbody>${data.map((item,i)=>`<tr>
+        <td style="color:#aaa;font-size:12px;">${i+1}</td>
+        <td><div style="font-size:13px;font-weight:500;margin-bottom:2px;">${item.title}</div><div style="font-size:11px;color:#888;">${item.angle||''}</div></td>
+        <td><strong style="color:#534AB7;">${item.cover}</strong></td>
+        <td style="font-size:12px;">${item.framework.map((f,j)=>`<div>${j+1}. ${f}</div>`).join('')}</td>
+        <td>${(item.platforms||[]).map(p=>`<span style="display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;margin:2px;${pb[p]||'background:#f0eed8;color:#888'}">${p}</span>`).join('')}</td>
+        <td><button class="copy-btn" onclick="copyText(this,'${item.title.replace(/'/g,"\\'")}\\n封面：${item.cover.replace(/'/g,"\\'")}\\n框架：${item.framework.join('；').replace(/'/g,"\\'")}')">复制</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+  document.getElementById('batchResult').innerHTML = html;
+}
+
+// ===== 4. 热门拆解 =====
+async function genTrend() {
+  const input = document.getElementById('trendInput').value.trim();
+  if (!input) { alert('请粘贴热门内容标题'); return; }
+  document.getElementById('trendLoading').classList.add('show');
+  document.getElementById('trendResult').innerHTML = '';
+  document.getElementById('trendErr').style.display = 'none';
+  document.getElementById('trendBtn').disabled = true;
+
+  const prompt = `你是自媒体内容分析师，行业：${brand.industry}。
+分析以下热门内容标题（${input.split('\n').filter(l=>l.trim()).length}条）：
+${input}
+只输出JSON：
+{"title_patterns":["结构1（举例）","结构2","结构3"],"hot_keywords":["词1","词2","词3","词4","词5","词6","词7","词8"],"user_emotions":[{"emotion":"","desc":"","freq":"高/中/低"}],"content_angles":["角度建议1","建议2","建议3","建议4"],"new_topics":["新选题1","新选题2","新选题3","新选题4","新选题5"]}`;
+
+  try {
+    const text = await callClaude(prompt, 1200);
+    useCredit();
+    renderTrend(parseJSON(text));
+  } catch(e) {
+    showErr('trendErr','生成失败，请重试');
+  } finally {
+    document.getElementById('trendLoading').classList.remove('show');
+    document.getElementById('trendBtn').disabled = false;
+  }
+}
+
+function renderTrend(d) {
+  document.getElementById('trendResult').innerHTML = `<div class="card">
+    <div class="card-title" style="margin-bottom:14px;">拆解报告</div>
+    <div style="margin-bottom:14px;"><div class="a-title">标题结构规律</div>${d.title_patterns.map(p=>`<div class="pain-item"><span class="pdot3"></span><span>${p}</span></div>`).join('')}</div>
+    <div class="analysis-grid">
+      <div class="a-card"><div class="a-title">高频关键词</div>${d.hot_keywords.map(k=>`<span class="kpill" onclick="copyKpill(this,'${k}')">${k}</span>`).join('')}</div>
+      <div class="a-card"><div class="a-title">用户情绪</div>${d.user_emotions.map(e=>`<div class="pain-item"><span class="pdot3" style="background:${e.freq==='高'?'#e84040':'#e87030'}"></span><span><strong>${e.emotion}</strong>（${e.freq}）：${e.desc}</span></div>`).join('')}</div>
+    </div>
+    <div style="margin-bottom:14px;"><div class="a-title">爆款角度建议</div>${d.content_angles.map(a=>`<div class="pain-item"><span class="pdot3" style="background:#1D9E75"></span><span>${a}</span></div>`).join('')}</div>
+    <div><div class="a-title">新选题建议</div>${d.new_topics.map(t=>`<div class="out-block" style="padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13.5px;">${t}</span><button class="copy-btn" onclick="copyText(this,'${t.replace(/'/g,"\\'")}')">复制</button></div>`).join('')}</div>
+  </div>`;
+}
+
+// ===== 5. 评论分析 =====
+async function genComment() {
+  const input = document.getElementById('commentInput').value.trim();
+  if (!input) { alert('请粘贴用户评论'); return; }
+  document.getElementById('commentLoading').classList.add('show');
+  document.getElementById('commentResult').innerHTML = '';
+  document.getElementById('commentErr').style.display = 'none';
+  document.getElementById('commentBtn').disabled = true;
+
+  const prompt = `你是用户洞察专家，行业：${brand.industry}，品牌：${brand.name}。
+分析以下用户评论（${input.split('\n').filter(l=>l.trim()).length}条）：
+${input}
+只输出JSON：
+{"top_pains":[{"pain":"","freq":"高/中/低","quote":"","content_angle":""}],"hot_keywords":["","","","","","","","","",""],"emotion_dist":[{"emotion":"","pct":"","color":"red/amber/green"}],"content_suggestions":["","","","",""]}`;
+
+  try {
+    const text = await callClaude(prompt, 1200);
+    useCredit();
+    renderComment(parseJSON(text));
+  } catch(e) {
+    showErr('commentErr','生成失败，请重试');
+  } finally {
+    document.getElementById('commentLoading').classList.remove('show');
+    document.getElementById('commentBtn').disabled = false;
+  }
+}
+
+function renderComment(d) {
+  document.getElementById('commentResult').innerHTML = `<div class="card">
+    <div class="card-title" style="margin-bottom:14px;">评论分析报告</div>
+    <div style="margin-bottom:14px;"><div class="a-title">核心痛点（可直接转为选题）</div>
+      ${d.top_pains.map(p=>`<div class="out-block" style="margin-bottom:10px;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;"><span style="font-size:13.5px;font-weight:500;">${p.pain}</span><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${p.freq==='高'?'#fff0f0':'#fff4ec'};color:${p.freq==='高'?'#e84040':'#e87030'};">${p.freq}频</span></div>
+        <div style="font-size:12.5px;color:#888;margin-bottom:4px;">「${p.quote}」</div>
+        <div style="font-size:12.5px;color:#534AB7;">→ ${p.content_angle}</div>
+      </div>`).join('')}
+    </div>
+    <div class="analysis-grid">
+      <div class="a-card"><div class="a-title">高频词</div>${d.hot_keywords.map(k=>`<span class="kpill" onclick="copyKpill(this,'${k}')">${k}</span>`).join('')}</div>
+      <div class="a-card"><div class="a-title">情绪分布</div>${d.emotion_dist.map(e=>{const c=e.color==='red'?'#e84040':e.color==='green'?'#1D9E75':'#e87030';return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="flex:1;height:6px;border-radius:3px;background:#f0eed8;overflow:hidden;"><div style="width:${e.pct};height:100%;background:${c};border-radius:3px;"></div></div><span style="font-size:12px;color:#555;min-width:110px;">${e.emotion} ${e.pct}</span></div>`;}).join('')}</div>
+    </div>
+    <div><div class="a-title">可用内容方向</div>${d.content_suggestions.map(s=>`<div class="out-block" style="padding:10px 14px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">${s}</span><button class="copy-btn" onclick="copyText(this,'${s.replace(/'/g,"\\'")}')">复制</button></div>`).join('')}</div>
+  </div>`;
+}
+
+// ===== 6. 配图提示词 =====
+async function genImg() {
+  const topic = document.getElementById('imgTopic').value.trim() || brand.industry + '产品展示';
+  const use   = getSelTags('imgUse')[0]   || '小红书封面';
+  const style = getSelTags('imgStyle')[0] || '清新简约';
+  document.getElementById('imgLoading').classList.add('show');
+  document.getElementById('imgResult').innerHTML = '';
+  document.getElementById('imgErr').style.display = 'none';
+  document.getElementById('imgBtn').disabled = true;
+
+  const prompt = `生成4组图片提示词，行业：${brand.industry}，主题：${topic}，用途：${use}，风格：${style}，品牌：${brand.name}。
+只输出JSON：[{"scene":"场景名","zh":"中文提示词（即梦/豆包用）","en":"Midjourney英文prompt"}]`;
+
+  try {
+    const text = await callClaude(prompt);
+    useCredit();
+    const prompts = parseJSON(text);
+    document.getElementById('imgResult').innerHTML = prompts.map(p=>`<div class="out-block">
+      <div class="out-label">${p.scene}</div>
+      <div style="font-size:13.5px;margin-bottom:8px;"><strong>即梦/豆包：</strong>${p.zh}</div>
+      <div style="font-size:12.5px;color:#888;"><strong>Midjourney：</strong>${p.en}</div>
+      <div class="out-actions">
+        <button class="copy-btn" onclick="copyText(this,'${p.zh.replace(/'/g,"\\'")}')">复制中文</button>
+        <button class="copy-btn" onclick="copyText(this,'${p.en.replace(/'/g,"\\'")}')">复制英文</button>
+      </div></div>`).join('');
+  } catch(e) {
+    showErr('imgErr','生成失败，请重试');
+  } finally {
+    document.getElementById('imgLoading').classList.remove('show');
+    document.getElementById('imgBtn').disabled = false;
+  }
+}
+</script>
+</body>
+</html>
