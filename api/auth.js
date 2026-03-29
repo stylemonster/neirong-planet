@@ -1,13 +1,20 @@
-// api/auth.js
-// 处理登录、注册、套餐查询
+// api/auth.js  鈫?CommonJS锛屼笉鑳界敤 export default
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { action, email, password, token } = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { body = {}; }
+  }
+  const { action, email, password, token } = body || {};
 
-  // ── 用户表（生产环境换成真实数据库） ─────────────────────────
-  // 环境变量格式: USER_ACCOUNTS = "email:password:token:plan:credits"
+  // 鈹€鈹€ 鐢ㄦ埛琛紙鐢熶骇鐜鎹㈡垚鐪熷疄鏁版嵁搴擄級 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // 鐜鍙橀噺鏍煎紡: USER_ACCOUNTS = "email:password:token:plan:credits"
   const accountsRaw = process.env.USER_ACCOUNTS || '';
   const accounts = {};
   accountsRaw.split('|').forEach(entry => {
@@ -18,11 +25,11 @@ export default async function handler(req, res) {
     }
   });
 
-  // ── 登录 ────────────────────────────────────────────────────
+  // 鈹€鈹€ 鐧诲綍 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (action === 'login') {
     const user = accounts[email];
     if (!user || user.password !== password) {
-      return res.status(401).json({ error: '邮箱或密码错误' });
+      return res.status(401).json({ error: '閭鎴栧瘑鐮侀敊璇? });
     }
     return res.status(200).json({
       token: user.token,
@@ -32,10 +39,10 @@ export default async function handler(req, res) {
     });
   }
 
-  // ── 验证 token（页面刷新时恢复登录状态） ─────────────────────
+  // 鈹€鈹€ 楠岃瘉 token锛堥〉闈㈠埛鏂版椂鎭㈠鐧诲綍鐘舵€侊級 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (action === 'verify') {
     const user = Object.values(accounts).find(u => u.token === token);
-    if (!user) return res.status(401).json({ error: 'token 无效或已过期' });
+    if (!user) return res.status(401).json({ error: 'token 鏃犳晥鎴栧凡杩囨湡' });
     const email = Object.keys(accounts).find(e => accounts[e].token === token);
     return res.status(200).json({
       token,
@@ -45,5 +52,5 @@ export default async function handler(req, res) {
     });
   }
 
-  return res.status(400).json({ error: '未知操作' });
+  return res.status(400).json({ error: '鏈煡鎿嶄綔' });
 }
